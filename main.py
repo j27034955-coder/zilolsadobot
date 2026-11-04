@@ -38,7 +38,7 @@ def process_search(message, query, msg):
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             results = ydl.extract_info(f"ytsearch3:{query}", download=False)['entries']
-        
+
         if not results:
             bot.edit_message_text("Hech narsa topilmadi 😕", chat_id=message.chat.id, message_id=msg.message_id)
             return
@@ -48,7 +48,7 @@ def process_search(message, query, msg):
             title = video.get('title', 'Noma\'lum')[:30]
             video_id = video.get('id')
             markup.add(InlineKeyboardButton(text=f"🎵 {title}", callback_data=f"dl_{video_id}"))
-        
+
         bot.edit_message_text("Topilgan musiqalar. Keraklisini tanlang:", 
                               chat_id=message.chat.id, 
                               message_id=msg.message_id, 
@@ -65,11 +65,11 @@ def download_music(call):
 def process_download(message, video_id):
     url = f"https://www.youtube.com/watch?v={video_id}"
     sent_msg = bot.send_message(message.chat.id, "📥 Musiqa tayyorlanmoqda, kuting...")
-    
+
     file_path = f"{video_id}.mp3"
     ydl_opts = {
         'format': 'bestaudio/best',
-        'outtmpl': file_path,
+        'outtmpl': video_id,  # <-- TO'G'RILANDI: kengaytmasiz yozildi, ffmpeg o'zi .mp3 qiladi
         'postprocessors': [{
             'key': 'FFmpegExtractAudio',
             'preferredcodec': 'mp3',
@@ -77,17 +77,20 @@ def process_download(message, video_id):
         }],
         'quiet': True
     }
-    
+
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
-            
+
+        if not os.path.exists(file_path):
+            raise Exception("Fayl topilmadi")
+
         with open(file_path, 'rb') as audio:
             bot.send_audio(message.chat.id, audio)
-            
+
         if os.path.exists(file_path):
             os.remove(file_path)
-            
+
         bot.delete_message(message.chat.id, sent_msg.message_id)
     except Exception as e:
         bot.send_message(message.chat.id, "Afsuski, qo'shiqni yuklab bo'lmadi.")
